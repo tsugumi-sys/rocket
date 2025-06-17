@@ -1,19 +1,23 @@
 #!/bin/bash
 
-# Exit on error
-set -e
+set -e  # Exit on error
 
 echo "📦 Setting up your fullstack Cloudflare project..."
 
-# Ask user for backend directory name
+###
+# Project Directory Setup
+###
+
 read -p "Enter backend project directory name [default: backend]: " BACKEND_DIR
 BACKEND_DIR=${BACKEND_DIR:-backend}
 
-# Ask user for web directory name
-read -p "Enter web project directory name [default: web]: " WEB_DIR
+read -p "Enter web directory name [default: web]: " WEB_DIR
 WEB_DIR=${WEB_DIR:-web}
 
-### --- Setup Backend ---
+###
+# Setup Backend (Hono + Cloudflare Workers)
+###
+
 echo "🔧 Creating backend project in ./$BACKEND_DIR using Hono..."
 npm create hono@latest "$BACKEND_DIR" -- --template cloudflare-workers
 
@@ -21,12 +25,15 @@ echo "📦 Installing backend dependencies..."
 cd "$BACKEND_DIR"
 npm install
 
-### --- Setup Drizzle ---
-echo "🌾 Setting up Drizzle ORM..."
+###
+# Setup Drizzle ORM
+###
+
+echo "🌾 Installing Drizzle ORM..."
 npm install drizzle-orm@latest --save
 npm install -D drizzle-kit@latest
 
-echo "🛠️ Initializing Drizzle config..."
+echo "🛠️ Creating drizzle.config.ts..."
 cat <<EOF > drizzle.config.ts
 import type { Config } from "drizzle-kit";
 
@@ -49,18 +56,18 @@ export const users = sqliteTable("users", {
 });
 EOF
 
-### --- Setup DB
+###
+# Setup D1 Database
+###
+
 echo "🗃️ Setting up D1 Database..."
 read -p "Enter D1 database name: " DB_NAME
 
 WRANGLER_FILE="wrangler.jsonc"
-
-# Create the D1 database
 DB_OUTPUT=$(npx wrangler d1 create "$DB_NAME")
 
-# Extract database_id from JSON in stdout
+# Extract DB ID
 DB_ID=$(echo "$DB_OUTPUT" | grep -oE '"database_id":\s*"[^"]+"' | cut -d'"' -f4)
-
 if [ -z "$DB_ID" ]; then
   echo "❌ Failed to extract D1 database ID. Aborting."
   exit 1
@@ -68,10 +75,9 @@ fi
 
 echo "✅ D1 created. ID: $DB_ID"
 
-# Strip comments, inject config, and write back
+# Strip comments, update wrangler.jsonc
 npx strip-json-comments "$WRANGLER_FILE" \
-| jq --arg db_name "$DB_NAME" \
-     --arg db_id "$DB_ID" \
+| jq --arg db_name "$DB_NAME" --arg db_id "$DB_ID" \
      '.d1_databases = [
         {
           binding: "DB",
@@ -79,14 +85,15 @@ npx strip-json-comments "$WRANGLER_FILE" \
           database_id: $db_id,
           migrations_dir: "drizzle"
         }
-      ]' \
-> "$WRANGLER_FILE.tmp" && mv "$WRANGLER_FILE.tmp" "$WRANGLER_FILE"
+      ]' > "$WRANGLER_FILE.tmp" && mv "$WRANGLER_FILE.tmp" "$WRANGLER_FILE"
 
 echo "✅ Updated $WRANGLER_FILE with D1 config."
 
-### --- Add DB commands to package.json ---
-echo "📝 Adding DB scripts to backend/package.json..."
+###
+# Add DB Scripts to package.json
+###
 
+echo "📝 Adding DB scripts to package.json..."
 if command -v jq >/dev/null 2>&1; then
   tmpfile=$(mktemp)
   jq --arg db_name "$DB_NAME" \
@@ -96,17 +103,19 @@ if command -v jq >/dev/null 2>&1; then
       "db:remote:migration": "wrangler d1 migrations apply \($db_name) --remote"
     }' package.json > "$tmpfile" && mv "$tmpfile" package.json
 else
-  echo "⚠️ 'jq' not found. Please install jq to automatically insert db scripts into package.json."
-  echo "Alternatively, add these manually to backend/package.json:"
+  echo "⚠️ 'jq' not found. Please install jq to update scripts automatically."
+  echo "Add these manually to package.json:"
   echo '  "db:generate": "drizzle-kit generate",'
   echo "  \"db:local:migration\": \"wrangler d1 migrations apply $DB_NAME --local\","
   echo "  \"db:remote:migration\": \"wrangler d1 migrations apply $DB_NAME --remote\""
 fi
 
-
 cd ..
 
-### --- Setup Web (Remix + Cloudflare Pages) ---
+###
+# Setup Web (Remix + Cloudflare Pages)
+###
+
 echo "🌐 Creating web project in ./$WEB_DIR using Remix + Cloudflare Pages..."
 npx create-remix@latest "$WEB_DIR" -- --cf-pages --yes
 
@@ -115,19 +124,21 @@ cd "$WEB_DIR"
 npm install
 cd ..
 
-### --- Project Structure & Stack ---
+###
+# Summary
+###
+
 echo ""
 echo "✅ Setup complete."
 echo ""
 echo "📁 Project Structure:"
-echo ""
 echo "."
 echo "├── $BACKEND_DIR (Hono + Cloudflare Workers + Drizzle ORM)"
 echo "│   ├── src"
 echo "│   │   └── db"
 echo "│   │       └── schema.ts"
 echo "│   ├── drizzle.config.ts"
-echo "│   └── wrangler.toml"
+echo "│   └── wrangler.jsonc"
 echo "└── $WEB_DIR (Remix + Cloudflare Pages)"
 echo "    ├── app"
 echo "    ├── public"
