@@ -37,5 +37,5 @@ curl -fsSL https://raw.githubusercontent.com/tsugumi-sys/rocket/refs/heads/main/
 2. Run:
 
 ```bash
-chmod +x setup_project.sh && setup_project.sh 
+chmod +x setup_project.sh && ./setup_project.sh 
 ```
