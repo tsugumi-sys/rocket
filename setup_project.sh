@@ -20,6 +20,39 @@ npm create hono@latest "$BACKEND_DIR" -- --template cloudflare-workers
 echo "📦 Installing backend dependencies..."
 cd "$BACKEND_DIR"
 npm install
+
+### --- Setup Drizzle ---
+echo "🌾 Setting up Drizzle ORM..."
+npm install drizzle-orm@latest --save
+npm install -D drizzle-kit@latest
+
+echo "🛠️ Initializing Drizzle config..."
+cat <<EOF > drizzle.config.ts
+import type { Config } from "drizzle-kit";
+
+export default {
+  schema: "./src/db/schema.ts",
+  out: "./drizzle",
+  driver: "d1",
+  dbCredentials: {
+    // Customize for your D1 DB binding
+    // Use with Cloudflare wrangler: wrangler.toml -> [d1_databases]
+    database: "DB"
+  }
+} satisfies Config;
+EOF
+
+echo "📁 Creating example schema..."
+mkdir -p src/db
+cat <<EOF > src/db/schema.ts
+import { sqliteTable, text, int } from "drizzle-orm/sqlite-core";
+
+export const users = sqliteTable("users", {
+  id: int("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+});
+EOF
+
 cd ..
 
 ### --- Setup Web (Remix + Cloudflare Pages) ---
@@ -38,8 +71,11 @@ echo ""
 echo "📁 Project Structure:"
 echo ""
 echo "."
-echo "├── $BACKEND_DIR (Hono + Cloudflare Workers)"
+echo "├── $BACKEND_DIR (Hono + Cloudflare Workers + Drizzle ORM)"
 echo "│   ├── src"
+echo "│   │   └── db"
+echo "│   │       └── schema.ts"
+echo "│   ├── drizzle.config.ts"
 echo "│   └── wrangler.toml"
 echo "└── $WEB_DIR (Remix + Cloudflare Pages)"
 echo "    ├── app"
@@ -47,5 +83,6 @@ echo "    ├── public"
 echo "    └── remix.config.js"
 echo ""
 echo "🧱 Tech Stack:"
-echo "👉 Backend: Hono + Cloudflare Workers"
+echo "👉 Backend: Hono + Cloudflare Workers + Drizzle ORM (D1)"
 echo "👉 Web: Remix + Cloudflare Pages"
+
