@@ -26,7 +26,23 @@ The servers are already up.
 - frontend: http://localhost:5173
 - backend: http://localhost:8787
 
-UI framework is shadcn/ui. Please use these components.
+UI framework is shadcn/ui. Please use these components. For example, if you need to use the Button component:
+
+```sh
+cd web && npx shadcn@latest add button
+```
+
+Then you can import it:
+
+```ts
+import { Button } from "~/components/ui/button"
+```
+
+For the TODO app, you will also need input, checkbox, and table components:
+
+```sh
+cd web && npx shadcn@latest add input checkbox table
+```
 
 ## When you create & modiry table
 

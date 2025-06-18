@@ -119,4 +119,6 @@ EOF
 
 echo "✅ postcss.config.js created."
 
+npx shadcn@latest add chart && npx shadcn@latest add button input checkbox table accordion badge card command popover pagination
+
 cd ..
