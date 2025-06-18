@@ -32,17 +32,8 @@ UI framework is shadcn/ui. Please use these components. For example, if you need
 cd web && npx shadcn@latest add button
 ```
 
-Then you can import it:
+Some ui components are already installed, please check.
 
-```ts
-import { Button } from "~/components/ui/button"
-```
-
-For the TODO app, you will also need input, checkbox, and table components:
-
-```sh
-cd web && npx shadcn@latest add input checkbox table
-```
 
 ## When you create & modiry table
 
