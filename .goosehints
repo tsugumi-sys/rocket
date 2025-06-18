@@ -1,0 +1,32 @@
+## Project Overview
+.
+├── backend (Hono + Cloudflare Workers + Drizzle ORM)
+│   ├── src
+│   │   └── db
+│   │       └── schema.ts (database)
+│   ├── drizzle.config.ts
+│   └── wrangler.jsonc
+└── web (Remix + Cloudflare Pages)
+    ├── app
+    ├── public
+    └── remix.config.js
+
+Tech Stack:
+Backend: Hono + Cloudflare Workers + Drizzle ORM (D1)
+Web: Remix + Cloudflare Pages
+
+
+## Tips
+
+Backend server entry point: ./backend/src/index.ts
+Frontend server entry point: ./web/app/root.tsx
+
+
+## When you create & modiry table
+
+1. go to backend directory
+2. modiry src/db/schema.ts
+3. generate migrations `npm run db:generate`
+4. apply `db:local:migration`
+
+See more commands in ./backend/package.json
