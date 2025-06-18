@@ -14,12 +14,14 @@ BACKEND_DIR=${BACKEND_DIR:-backend}
 read -p "Enter web directory name [default: web]: " WEB_DIR
 WEB_DIR=${WEB_DIR:-web}
 
+read -p "Enter D1 database name: " DB_NAME
+
 ###
 # Setup Backend (Hono + Cloudflare Workers)
 ###
 
 echo "🔧 Creating backend project in ./$BACKEND_DIR using Hono..."
-npm create hono@latest "$BACKEND_DIR" -- --template cloudflare-workers
+npm create hono@latest "$BACKEND_DIR" -- --template cloudflare-workers --pm npm --install
 
 echo "📦 Installing backend dependencies..."
 cd "$BACKEND_DIR"
@@ -61,7 +63,6 @@ EOF
 ###
 
 echo "🗃️ Setting up D1 Database..."
-read -p "Enter D1 database name: " DB_NAME
 
 WRANGLER_FILE="wrangler.jsonc"
 DB_OUTPUT=$(npx wrangler d1 create "$DB_NAME")
@@ -87,6 +88,8 @@ npx strip-json-comments "$WRANGLER_FILE" \
         }
       ]' > "$WRANGLER_FILE.tmp" && mv "$WRANGLER_FILE.tmp" "$WRANGLER_FILE"
 
+npm run cf-typegen
+
 echo "✅ Updated $WRANGLER_FILE with D1 config."
 
 ###
@@ -110,6 +113,48 @@ else
   echo "  \"db:remote:migration\": \"wrangler d1 migrations apply $DB_NAME --remote\""
 fi
 
+
+###
+# Setup migration
+###
+echo "Generate migration"
+
+npm run db:generate
+
+echo "Run migration locally"
+
+Y | npm run db:local:migration
+
+
+###
+# Overwrite index.ts
+###
+
+echo "import { Hono } from 'hono'
+import { drizzle } from \"drizzle-orm/d1\";
+
+import { users } from \"./db/schema\";
+
+
+export type Bindings = {
+  DB: D1Database;
+};
+
+const app = new Hono<{ Bindings: Bindings }>()
+
+
+app.get('/', (c) => {
+  return c.text('Hello Hono!')
+})
+
+app.get(\"/users\", async (c) => {
+  const db = drizzle(c.env.DB);
+  const result = await db.select().from(users).all();
+  return c.json(result);
+});
+
+export default app" > ./src/index.ts
+
 cd ..
 
 ###
@@ -122,6 +167,96 @@ npx create-remix@latest "$WEB_DIR" -- --cf-pages --yes
 echo "📦 Installing web dependencies..."
 cd "$WEB_DIR"
 npm install
+
+
+###
+# Create .dev.vars file and insert BACKEND_SERVER_URL
+###
+
+echo "Creating .dev.vars file..."
+
+cat <<EOF > .dev.vars
+BACKEND_SERVER_URL="http://localhost:8787"
+EOF
+
+echo "✅ .dev.vars file created with BACKEND_SERVER_URL."
+
+
+###
+# Overwrite page
+###
+
+echo "import React from \"react\";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from \"@remix-run/react\";
+import type { LoaderFunction } from \"@remix-run/node\";
+import { json } from \"@remix-run/node\";
+
+import \"./tailwind.css\";
+
+// Loader function to fetch data from the backend API
+export const loader: LoaderFunction = async () => {
+  try {
+    const response = await fetch(\"http://localhost:8787/users\");
+    if (!response.ok) {
+      throw new Error(\"Failed to fetch users\");
+    }
+    const users = await response.json();
+    return json({ users });
+  } catch (err) {
+    return json({ error: \"Error fetching users\" }, { status: 500 });
+  }
+};
+
+export const links = () => [
+  { rel: \"preconnect\", href: \"https://fonts.googleapis.com\" },
+  {
+    rel: \"preconnect\",
+    href: \"https://fonts.gstatic.com\",
+    crossOrigin: \"anonymous\",
+  },
+  {
+    rel: \"stylesheet\",
+    href: \"https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap\",
+  },
+];
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const { users, error } = useLoaderData();
+
+  return (
+    <html lang=\"en\">
+      <head>
+        <meta charSet=\"utf-8\" />
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        {error ? (
+          <p>{error}</p>
+        ) : (
+          <div>
+            <h1>Users</h1>
+            <ul>
+              {users.map((user: any) => (
+                <li key={user.id}>{user.email}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {children}
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+export default function App() {
+  return <Outlet />;
+}" > app/root.tsx
+
+
 cd ..
 
 ###
