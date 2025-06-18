@@ -26,6 +26,7 @@ The servers are already up.
 - frontend: http://localhost:5173
 - backend: http://localhost:8787
 
+UI framework is shadcn/ui. Please use these components.
 
 ## When you create & modiry table
 
