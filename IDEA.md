@@ -1,3 +1,11 @@
+# Minimal Step
+
+1. Fully local
+2. Use goose for agent
+3. Preview with user's browser of localhost.
+4. Simple management webview.
+
+
 # 🧱 Platform Core Design (Cloudflare + Hono Based)
 
 ## 🎯 Goal
