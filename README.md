@@ -31,11 +31,11 @@ wrangler login
 1. Download script.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tsugumi-sys/rocket/refs/heads/main/setup_project.sh -o setup_project.sh
+curl -fsSL https://raw.githubusercontent.com/tsugumi-sys/rocket/refs/heads/main/setup_project.sh -o installer.sh
 ```
 
 2. Run:
 
 ```bash
-chmod +x setup_project.sh && ./setup_project.sh 
+chmod +x installer.sh && ./installer.sh 
 ```
