@@ -6,6 +6,7 @@
 
 BACKEND_DIR="$1"
 DB_NAME="$2"
+CLOUDFLARE_ACCOUNT_ID="$3"
 
 echo "🔧 Creating backend project in ./$BACKEND_DIR using Hono..."
 npm create hono@latest "$BACKEND_DIR" -- --template cloudflare-workers --pm npm --install
