@@ -31,7 +31,7 @@ wrangler login
 1. Download script.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tsugumi-sys/rocket/refs/heads/main/setup_project.sh -o installer.sh
+curl -fsSL https://raw.githubusercontent.com/tsugumi-sys/rocket/refs/heads/main/installer.sh -o installer.sh
 ```
 
 2. Run:
