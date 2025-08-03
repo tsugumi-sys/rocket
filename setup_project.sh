@@ -11,6 +11,9 @@ echo "📦 Setting up your fullstack Cloudflare project..."
 read -p "Enter backend project directory name [default: backend]: " BACKEND_DIR
 BACKEND_DIR=${BACKEND_DIR:-backend}
 
+read -p "Enter database name [default: my_database]: " DB_NAME
+DB_NAME=${DB_NAME:-my_database}
+
 # Set CLOUDFLARE_ACCOUNT_ID only if it's not already set
 if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
   echo "⚠️ More than one account available but unable to select one in non-interactive mode."
